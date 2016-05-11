@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Geocoding service</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 30%;
+      }
+	  #output
+	  {
+		  position:absolute;
+		  top:400px;
+		  left:0%;
+          z-index: 3;
+          background-color: #fff;
+          padding: 0px;
+          border: 0px solid #999;
+          font-family: 'Roboto','sans-serif';
+          line-height: 28px;
+          padding-left: 2px;
+	  }
+	  
+	  #floating-panel2
+	  {
+	  	
+          position: absolute;
+          top: 250px;
+          left: 60%;
+          z-index: 5;
+          background-color: #fff;
+          padding: 5px;
+          border: 1px solid #999;
+          text-align: center;
+          font-family: 'Roboto','sans-serif';
+          line-height: 30px;
+          padding-left: 10px;
+		
+	  }
+      #floating-panel {
+        position: absolute;
+        top: 250px;
+        left: 0%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+    </style>
+ <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.2/jquery.min.js"></script>
+  </head>
+  <body>
+	<div id="map"></div>
+    <div id="floating-panel">
+     
+	 <div id="innerpannel"> 
+	  <input id="address" type="textbox" value="New York">
+	  <input id="groupid" type="textbox" value="123456">
+	  <input id="getform" type="button" onclick=getforms() value="Go">
+  </div>
+    </div>
+ <div id="floating-panel2">
+		 <input id="search" type="textbox" value="pizza">
+		 <input id="userid" type="textbox" value="9655208893">
+		 <input id="find" type="button" onclick=search() value="Find">
+		 
+	</div>
+
+<div id="output">
+</div> 
+    
+    <script>
+	  var csrftoken = getCookie('csrftoken');
+      var geocoder;
+	  var map;
+	  var username;
+	  var groupid = document.getElementById('groupid').value;
+	  var t = 1;
+      function initMap() {
+		
+		 $.ajaxSetup({
+		      contentType : 'application/json',
+		      processData : false,
+			  beforeSend: function(xhr, settings) {
+			        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+			            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+			        }
+			    }
+		 });
+		 $.ajaxPrefilter( function( options, originalOptions, jqXHR ) {
+		      if (options.data){
+		          options.data=JSON.stringify(options.data);
+		      }
+		  });
+       
+	      map = new google.maps.Map(document.getElementById('map'), {
+	        zoom: 10,
+	        center: {lat: -34.397, lng: 150.644}
+	      });
+	      geocoder = new google.maps.Geocoder();
+         
+		
+        
+      }
+
+	function csrfSafeMethod(method) {
+	      // these HTTP methods do not require CSRF protection
+	      return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+	}
+
+   function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie != '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            // Does this cookie string begin with the name we want?
+            if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+      
+      function geocodeAddress(geocoder, resultsMap) {
+		console.log(username.length);
+        var address = document.getElementById('address'+t).value;
+		//var user = document.getElementById('user'+i).value;
+		user = username[t-1];
+		console.log(t);
+		console.log(address);
+		geocoder.geocode({'address': address}, function(results, status) {
+          if (status === google.maps.GeocoderStatus.OK) {
+            resultsMap.setCenter(results[0].geometry.location);
+            var marker = new google.maps.Marker({ 
+              map: resultsMap,
+              position: results[0].geometry.location
+            });
+			var lat = results[0].geometry.location.lat();
+			var lng = results[0].geometry.location.lng();
+			//var user1 = document.getElementById('user1').value;
+			
+			var dataobject = {userid:user, Lat:lat, Long:lng};
+			console.log(dataobject)
+			$.ajax({
+			    type: "PUT",
+			    url: "http://127.0.0.1:8000/users/",
+			    contentType: "application/json",
+			    data: dataobject,
+			    success: function (msg) {console.log(msg); console.log(t); t++; console.log(t); if(t<=username.length) geocodeAddress(geocoder,map); else t=1;}
+			});
+			 
+			   
+			// pass to randomgeo function 
+          } else {
+            alert('Geocode was not successful for the following reason: ' + status);
+          }
+        });
+	
+      }
+	  
+	  
+	  function search(){
+		var groupid = document.getElementById('groupid').value;
+	  	var search = document.getElementById('search').value;
+		var userid = document.getElementById('userid').value;
+	    var url = "http://127.0.0.1:8000/tasks/?"+"term=" + search + "&groupid=" + groupid + "&userid=" + userid;
+	    console.log(userid,groupid);
+       $("#output").empty();
+	   var searchrequest = $.get(url, function(data, status){
+		   var string = JSON.stringify(data);
+		   var jsonData = JSON.parse(string);
+		   for (var i = 0; i < jsonData.length; i++) {
+		       var counter = jsonData[i];
+		       var nam = counter.name;
+			   console.log(nam);
+			   var str = "<h3>" + nam + ":" + "</h3>" + "\n";
+			   var res = counter.res;
+			   console.log(res);
+			   jsonres = JSON.parse(res);
+			   for (var j=0;j < jsonres.length; j++)
+				   {str = str + (j+1) + ":" + " " + jsonres[j] + " ";}
+		       output = document.getElementById('output');
+			   var newcontent = document.createElement('div');
+			       newcontent.innerHTML = str;
+
+			       while (newcontent.firstChild) {
+			           output.appendChild(newcontent.firstChild);
+			       }
+			   //output.appendChild(document.createTextNode(str))
+			   }
+			
+			   
+	  });
+	  
+	  searchrequest.error(function(xhr, textStatus, errorThrown){
+		   alert("User does not belong to the group or group does not exist"); });
+	  }
+	  
+	  
+	  function getforms()
+	  {
+		var groupid = document.getElementById('groupid').value;	
+	  	url = "http://127.0.0.1:8000/sets/?"+"groupid=" + groupid;
+		var request = $.get(url, function(data, status){
+ 		var string = JSON.stringify(data);
+ 		var jsonData = JSON.parse(string);
+		var counter = jsonData;
+		console.log(jsonData);
+		var users = counter.users;
+		console.log(users);
+		jsonuse = JSON.parse(users); 
+		var n = jsonuse.length;
+		username = jsonuse;
+		var container = document.getElementById("floating-panel");
+		            // Clear previous contents of the container
+		            while (container.hasChildNodes() && container.lastChild.id!="innerpannel") {
+						//console.log(container.lastChild.id);
+		                container.removeChild(container.lastChild);
+		            }
+		            for (i=0;i<n;i++){
+						container.appendChild(document.createTextNode(jsonuse[i]));
+						var input2 = document.createElement("input");
+		                input2.type="text";
+		                input2.value="Enter zipcode of user"+ (i+1);
+						input2.id = "address"+ (i+1);
+		                container.appendChild(input2);
+		            }
+					container.appendChild(document.createElement("br"));
+					var input3 = document.createElement("input");
+	                input3.type="button";
+					input3.id= "submit";
+					input3.value = "Geocode";
+					container.appendChild(input3);
+		            document.getElementById('submit').addEventListener('click', function() {
+		            geocodeAddress(geocoder, map);});
+		          });
+				  request.error(function(xhr, textStatus, errorThrown){
+					   alert("Group does not exist. Try with a different one"); });
+		
+	  }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBiMNxARTHRh6U7P9Ve_zbkXbBXj6CAhE4&callback=initMap">
+    </script>
+  </body>
+</html>
