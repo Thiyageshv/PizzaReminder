@@ -8,7 +8,7 @@ python manage.py runserver
  
 In your local system go to http://127.0.0.1:8000/static/map.html to access the simulation tool. 
 If you want to execute the tool in a different system, make sure to run the django server on any interface other than local interface and include that URL in the JQuery requests. 
-For instance
+For instance, PUT or POST requests ahve the following structure 
  
 ```
  $.ajax({
@@ -16,17 +16,9 @@ For instance
 			    url: "http://127.0.0.1:8000/users/" '' Change URL. ,
 			    contentType: "application/json",
 			    data: dataobject,
-				success: function (msg) {console.log(msg);}
+				success: function (msg) {console.log(msg);} //call back fucntion
 			});
-			//	$.get("http://127.0.0.1:8000/users/", function(data, status){
-			//	        alert("Data: " + data + "\nStatus: " + status);
-			//	    });
-			var groupid = document.getElementById('groupid').value;
-			// pass to randomgeo function 
-          } else {
-            alert('Geocode was not successful for the following reason: ' + status);
-          }
-        });
+		
 ```
 ```
 var url = "http://127.0.0.1:8000/tasks/?"+"term=" + search + "&groupid=" + groupid + "&userid=" + userid;
